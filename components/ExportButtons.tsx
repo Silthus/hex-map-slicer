@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import type { UploadedImage, HexSettings, PageSlice, TilePage, HexCell } from '@/types'
+import type { UploadedImage, HexSettings, PageSlice, SpatialTilePage, HexCell } from '@/types'
 import { exportToPDF, exportAllAsPNGs, estimateFileSizes, exportTilePagesToPDF, exportTilePagesAsZip } from '@/lib/exporter'
 
 interface ExportButtonsProps {
   image: UploadedImage
   settings: HexSettings
   slices: PageSlice[]
-  tilePages: TilePage[]
+  tilePages: SpatialTilePage[]
   hexCells: HexCell[]
   sourceCanvas: HTMLCanvasElement | null
 }

@@ -1,5 +1,5 @@
-import type { HexCell, HexGridSettings, HexOrientation, PageSlice, PrintSettings, TilePage } from '@/types'
-import { renderTilePage } from './tileSlicer'
+import type { HexCell, HexGridSettings, HexOrientation, PageSlice, PrintSettings, SpatialTilePage } from '@/types'
+import { renderSpatialTilePage } from './tileSlicer'
 
 /**
  * Render a slice to a high-resolution canvas for export
@@ -199,7 +199,7 @@ export function estimateFileSizes(
  */
 export async function exportTilePagesToPDF(
   sourceCanvas: HTMLCanvasElement,
-  tilePages: TilePage[],
+  tilePages: SpatialTilePage[],
   hexSize: number,
   hexOrientation: HexOrientation,
   printSettings: PrintSettings,
@@ -232,7 +232,7 @@ export async function exportTilePagesToPDF(
     }
     
     const page = tilePages[i]
-    const canvas = renderTilePage(
+    const canvas = renderSpatialTilePage(
       sourceCanvas,
       page,
       hexSize,
@@ -258,7 +258,7 @@ export async function exportTilePagesToPDF(
  */
 export async function exportTilePagesAsZip(
   sourceCanvas: HTMLCanvasElement,
-  tilePages: TilePage[],
+  tilePages: SpatialTilePage[],
   hexSize: number,
   hexOrientation: HexOrientation,
   printSettings: PrintSettings,
@@ -279,7 +279,7 @@ export async function exportTilePagesAsZip(
   
   // Render each tile page and add to ZIP
   for (const page of tilePages) {
-    const canvas = renderTilePage(
+    const canvas = renderSpatialTilePage(
       sourceCanvas,
       page,
       hexSize,
@@ -292,7 +292,8 @@ export async function exportTilePagesAsZip(
     const dataUrl = canvas.toDataURL('image/png')
     const base64 = dataUrl.split(',')[1]
     
-    const pageName = `tile-page-${String(page.pageIndex + 1).padStart(2, '0')}.png`
+    // Use row-col naming for spatial pages
+    const pageName = `tile-page-${String(page.row + 1).padStart(2, '0')}-${String(page.col + 1).padStart(2, '0')}.png`
     zip.file(pageName, base64, { base64: true })
   }
   

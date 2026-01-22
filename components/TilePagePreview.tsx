@@ -1,16 +1,16 @@
 'use client'
 
-import type { HexOrientation, HexSettings, TilePage } from '@/types'
-import { renderTilePagePreview } from '@/lib/tileSlicer'
+import type { HexOrientation, HexSettings, SpatialTilePage } from '@/types'
+import { renderSpatialTilePagePreview } from '@/lib/tileSlicer'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 interface TilePagePreviewProps {
-  page: TilePage
+  page: SpatialTilePage
   hexSize: number
   hexOrientation: HexOrientation
   settings: HexSettings
   sourceCanvas: HTMLCanvasElement | null
-  onDownload: (page: TilePage) => void
+  onDownload: (page: SpatialTilePage) => void
 }
 
 export function TilePagePreview({ 
@@ -78,8 +78,8 @@ export function TilePagePreview({
     // Clear canvas
     ctx.clearRect(0, 0, displayWidth, displayHeight)
 
-    // Render the tile page preview at display resolution
-    const previewCanvas = renderTilePagePreview(
+    // Render the spatial tile page preview at display resolution
+    const previewCanvas = renderSpatialTilePagePreview(
       sourceCanvas,
       page,
       hexSize,

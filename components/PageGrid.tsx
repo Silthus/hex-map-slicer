@@ -2,8 +2,8 @@
 
 import { generateLabeledHexGrid } from '@/lib/gridGenerator'
 import { calculateDisplayHexSize, generateSlicesWithOverlap } from '@/lib/pageSlicer'
-import { generateTilePages, renderTilePage } from '@/lib/tileSlicer'
-import type { HexCell, HexSettings, PageSlice, TilePage, UploadedImage } from '@/types'
+import { generateSpatialTilePages, renderSpatialTilePage } from '@/lib/tileSlicer'
+import type { HexCell, HexSettings, PageSlice, SpatialTilePage, UploadedImage } from '@/types'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ExportButtons } from './ExportButtons'
 import { PageTile } from './PageTile'
@@ -122,18 +122,19 @@ export function PageGrid({ image, settings }: PageGridProps) {
     )
   }, [isReady, image.width, image.height, settings.print, hexCells, settings.grid.hexSize, settings.grid.orientation])
 
-  // Generate tile pages (tile mode)
+  // Generate spatial tile pages (tile mode - preserves map layout)
   const tilePages = useMemo(() => {
     if (!isReady || settings.print.sliceMode !== 'tile' || hexCells.length === 0) return []
     
-    return generateTilePages(
+    return generateSpatialTilePages(
       hexCells,
       settings.grid.hexSize,
       settings.grid.orientation,
       image.width,
+      image.height,
       settings.print
     )
-  }, [isReady, hexCells, settings.grid.hexSize, settings.grid.orientation, image.width, settings.print])
+  }, [isReady, hexCells, settings.grid.hexSize, settings.grid.orientation, image.width, image.height, settings.print])
 
   // Calculate hex size for display
   const hexSizeCm = useMemo(() => {
@@ -210,11 +211,11 @@ export function PageGrid({ image, settings }: PageGridProps) {
   }, [settings.print])
 
   // Handle single tile page download
-  const handleDownloadTilePage = useCallback(async (page: TilePage) => {
+  const handleDownloadTilePage = useCallback(async (page: SpatialTilePage) => {
     const sourceCanvas = sourceCanvasRef.current
     if (!sourceCanvas) return
 
-    const outputCanvas = renderTilePage(
+    const outputCanvas = renderSpatialTilePage(
       sourceCanvas,
       page,
       settings.grid.hexSize,
@@ -234,7 +235,7 @@ export function PageGrid({ image, settings }: PageGridProps) {
     const dataUrl = outputCanvas.toDataURL('image/png')
     const link = document.createElement('a')
     link.href = dataUrl
-    link.download = `hex-tiles-page-${page.pageIndex + 1}.png`
+    link.download = `hex-tiles-page-${page.row + 1}-${page.col + 1}.png`
     link.click()
   }, [settings.grid, settings.print])
 
@@ -299,12 +300,12 @@ export function PageGrid({ image, settings }: PageGridProps) {
         </div>
       )}
 
-      {/* Page grid - Tile mode */}
+      {/* Page grid - Tile mode (spatial layout matching region mode) */}
       {!isRegionMode && (
         <div 
           className="grid gap-4 mb-6"
           style={{
-            gridTemplateColumns: `repeat(${Math.min(tilePages.length, 4)}, minmax(150px, 1fr))`,
+            gridTemplateColumns: `repeat(${settings.print.pagesX}, minmax(150px, 1fr))`,
           }}
         >
           {tilePages.map((page) => (

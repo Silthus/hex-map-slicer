@@ -46,6 +46,7 @@ export interface PrintSettings {
   dpi: number
   sliceMode: SliceMode
   tileMarginMm: number // margin between individual tiles in tile mode
+  tileSpacingFactor: number // multiplier for spatial tile spacing (e.g., 1.2 = 20% extra space between tiles)
 }
 
 // Combined settings object
@@ -109,6 +110,13 @@ export interface TilePage {
   tiles: TilePlacement[]
 }
 
+// A page containing tiles arranged spatially (preserving map layout)
+export interface SpatialTilePage extends TilePage {
+  row: number  // page grid row
+  col: number  // page grid column
+  regionBounds: { x: number; y: number; width: number; height: number }
+}
+
 // Layout info for tile mode
 export interface TileLayout {
   tilesPerRow: number
@@ -117,6 +125,17 @@ export interface TileLayout {
   totalPages: number
   tileSizeMm: number // hex bounding box size in mm
   effectiveTileSizeMm: number // including margin
+}
+
+// Layout info for spatial tile mode
+export interface SpatialTileLayout {
+  pagesX: number
+  pagesY: number
+  tileSizeMm: number
+  tileSizePx: number
+  spacingFactor: number
+  // Scale from source image pixels to page pixels
+  pageScale: number
 }
 
 // Export options
@@ -151,6 +170,7 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   dpi: 300,
   sliceMode: 'region',
   tileMarginMm: 3,
+  tileSpacingFactor: 1.15, // 15% extra space between tiles to preserve map shape
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {

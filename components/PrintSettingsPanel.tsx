@@ -1,8 +1,6 @@
 'use client'
 
 import type { PageOrientation, PrintSettings, SliceMode } from '@/types';
-import { calculateTileLayout } from '@/lib/tileSlicer';
-import { getHexDimensions } from '@/lib/hexMath';
 import { useCallback, useMemo } from 'react';
 
 type PrintUpdate = { type: 'print'; changes: Partial<PrintSettings> }
@@ -55,20 +53,6 @@ export function PrintSettingsPanel({ settings, onSettingsChange, imageWidth, hex
     return (hexDiagonalMm / 10).toFixed(1)
   }, [hexSize, settings, imageWidth])
 
-  // Calculate tile layout info for tile mode
-  const tileLayoutInfo = useMemo(() => {
-    if (settings.sliceMode !== 'tile' || totalHexes === 0) return null
-    
-    const layout = calculateTileLayout(
-      hexSize,
-      hexOrientation,
-      imageWidth,
-      settings,
-      totalHexes
-    )
-    
-    return layout
-  }, [settings, hexSize, hexOrientation, imageWidth, totalHexes])
 
   return (
     <div className="card p-4 space-y-4">
@@ -84,15 +68,15 @@ export function PrintSettingsPanel({ settings, onSettingsChange, imageWidth, hex
           <span className="font-mono text-xs text-parchment/50">Hex Diagonal</span>
           <span className="font-mono text-sm text-brass">~{hexSizeCm} cm</span>
         </div>
-        {settings.sliceMode === 'tile' && tileLayoutInfo && (
+        {settings.sliceMode === 'tile' && (
           <>
             <div className="flex items-center justify-between mt-1">
-              <span className="font-mono text-xs text-parchment/50">Tiles per Page</span>
-              <span className="font-mono text-sm text-teal">{tileLayoutInfo.tilesPerPage}</span>
+              <span className="font-mono text-xs text-parchment/50">Total Tiles</span>
+              <span className="font-mono text-sm text-teal">{totalHexes}</span>
             </div>
             <div className="flex items-center justify-between mt-1">
-              <span className="font-mono text-xs text-parchment/50">Total Pages</span>
-              <span className="font-mono text-sm text-brass">{tileLayoutInfo.totalPages}</span>
+              <span className="font-mono text-xs text-parchment/50">Page Grid</span>
+              <span className="font-mono text-sm text-brass">{settings.pagesX} × {settings.pagesY}</span>
             </div>
           </>
         )}
@@ -183,39 +167,42 @@ export function PrintSettingsPanel({ settings, onSettingsChange, imageWidth, hex
         </div>
       </div>
 
-      {/* Pages Grid - only shown in region mode */}
-      {settings.sliceMode === 'region' && (
-        <div>
-          <label className="label">
-            Pages
-            <span className="text-brass ml-2">{settings.pagesX} × {settings.pagesY} = {settings.pagesX * settings.pagesY}</span>
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label text-xs">Columns</label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={settings.pagesX}
-                onChange={handlePagesXChange}
-                className="slider"
-              />
-            </div>
-            <div>
-              <label className="label text-xs">Rows</label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                value={settings.pagesY}
-                onChange={handlePagesYChange}
-                className="slider"
-              />
-            </div>
+      {/* Pages Grid - shown in both region and tile mode (for spatial layout) */}
+      <div>
+        <label className="label">
+          Pages
+          <span className="text-brass ml-2">{settings.pagesX} × {settings.pagesY} = {settings.pagesX * settings.pagesY}</span>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label text-xs">Columns</label>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={settings.pagesX}
+              onChange={handlePagesXChange}
+              className="slider"
+            />
+          </div>
+          <div>
+            <label className="label text-xs">Rows</label>
+            <input
+              type="range"
+              min="1"
+              max="10"
+              value={settings.pagesY}
+              onChange={handlePagesYChange}
+              className="slider"
+            />
           </div>
         </div>
-      )}
+        {settings.sliceMode === 'tile' && (
+          <p className="font-mono text-xs text-parchment/40 mt-1">
+            Tiles arranged spatially to preserve map shape
+          </p>
+        )}
+      </div>
 
       {/* Tile Margin - only shown in tile mode */}
       {settings.sliceMode === 'tile' && (
