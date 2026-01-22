@@ -351,8 +351,12 @@ export function extractHexTile(
   const ctx = tileCanvas.getContext('2d')
   if (!ctx) throw new Error('Failed to get canvas context')
   
-  // Calculate scale to fit hex in output
-  const scale = outputSize / Math.max(hexDims.width, hexDims.height)
+  // Calculate feathered dimensions - the hex expands equally in all directions
+  const featheredWidth = hexDims.width * (1 + featherRatio)
+  const featheredHeight = hexDims.height * (1 + featherRatio)
+  
+  // Calculate scale to fit the FEATHERED hex in output (so it's centered and fits)
+  const scale = outputSize / Math.max(featheredWidth, featheredHeight)
   
   // Center position
   const centerX = outputSize / 2
@@ -362,8 +366,9 @@ export function extractHexTile(
   ctx.save()
   
   // Create hex clipping path at output size with feather expansion
-  // The clipping hex expands outward by featherRatio
-  const scaledSize = hexSize * scale * (1 + featherRatio)
+  // The feathered hex size in the output coordinate system
+  const featheredHexSize = hexSize * (1 + featherRatio)
+  const scaledSize = featheredHexSize * scale
   const vertices = getHexVertices(centerX, centerY, scaledSize, hexOrientation)
   
   ctx.beginPath()
@@ -375,14 +380,12 @@ export function extractHexTile(
   ctx.clip()
   
   // Calculate source region - expand proportionally to match feather
-  const expandedWidth = hexDims.width * (1 + featherRatio)
-  const expandedHeight = hexDims.height * (1 + featherRatio)
-  const srcX = cell.centerX - expandedWidth / 2
-  const srcY = cell.centerY - expandedHeight / 2
-  const srcWidth = expandedWidth
-  const srcHeight = expandedHeight
+  const srcX = cell.centerX - featheredWidth / 2
+  const srcY = cell.centerY - featheredHeight / 2
+  const srcWidth = featheredWidth
+  const srcHeight = featheredHeight
   
-  // Calculate destination to center the hex
+  // Calculate destination to center the feathered hex in the output
   const destWidth = srcWidth * scale
   const destHeight = srcHeight * scale
   const destX = centerX - destWidth / 2
