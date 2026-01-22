@@ -1,9 +1,9 @@
 'use client'
 
-import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
-import type { UploadedImage, HexSettings, HexCell } from '@/types'
 import { generateLabeledHexGrid } from '@/lib/gridGenerator'
 import { findHexAtPoint } from '@/lib/hexMath'
+import type { HexCell, HexSettings, UploadedImage } from '@/types'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Zoom constants
 const MIN_ZOOM = 0.25
