@@ -351,12 +351,8 @@ export function extractHexTile(
   const ctx = tileCanvas.getContext('2d')
   if (!ctx) throw new Error('Failed to get canvas context')
   
-  // Calculate feathered dimensions - the hex expands equally in all directions
-  const featheredWidth = hexDims.width * (1 + featherRatio)
-  const featheredHeight = hexDims.height * (1 + featherRatio)
-  
-  // Calculate scale to fit the FEATHERED hex in output (so it's centered and fits)
-  const scale = outputSize / Math.max(featheredWidth, featheredHeight)
+  // Calculate scale to fit hex in output
+  const scale = outputSize / Math.max(hexDims.width, hexDims.height)
   
   // Center position
   const centerX = outputSize / 2
@@ -366,9 +362,8 @@ export function extractHexTile(
   ctx.save()
   
   // Create hex clipping path at output size with feather expansion
-  // The feathered hex size in the output coordinate system
-  const featheredHexSize = hexSize * (1 + featherRatio)
-  const scaledSize = featheredHexSize * scale
+  // The clipping hex expands outward by featherRatio
+  const scaledSize = hexSize * scale * (1 + featherRatio)
   const vertices = getHexVertices(centerX, centerY, scaledSize, hexOrientation)
   
   ctx.beginPath()
@@ -380,12 +375,14 @@ export function extractHexTile(
   ctx.clip()
   
   // Calculate source region - expand proportionally to match feather
-  const srcX = cell.centerX - featheredWidth / 2
-  const srcY = cell.centerY - featheredHeight / 2
-  const srcWidth = featheredWidth
-  const srcHeight = featheredHeight
+  const expandedWidth = hexDims.width * (1 + featherRatio)
+  const expandedHeight = hexDims.height * (1 + featherRatio)
+  const srcX = cell.centerX - expandedWidth / 2
+  const srcY = cell.centerY - expandedHeight / 2
+  const srcWidth = expandedWidth
+  const srcHeight = expandedHeight
   
-  // Calculate destination to center the feathered hex in the output
+  // Calculate destination to center the hex
   const destWidth = srcWidth * scale
   const destHeight = srcHeight * scale
   const destX = centerX - destWidth / 2
@@ -1134,11 +1131,14 @@ export function renderSelectiveTilePagePreview(
     
     ctx.drawImage(tileCanvas, scaledDestX, scaledDestY)
     
-    // Draw hex border if enabled
+    // Draw hex border if enabled (at original hex size - the cut line)
     if (gridSettings.showLines) {
       const hexDims = getHexDimensions(hexSize, hexOrientation)
-      const scale = previewTileSizePx / Math.max(hexDims.width, hexDims.height)
-      const scaledHexSize = hexSize * scale
+      // Use feathered scale so grid lines mark the original hex boundary inside the feathered tile
+      const featheredWidth = hexDims.width * (1 + featherRatio)
+      const featheredHeight = hexDims.height * (1 + featherRatio)
+      const scale = previewTileSizePx / Math.max(featheredWidth, featheredHeight)
+      const scaledHexSize = hexSize * scale  // Original hex size, scaled
       const centerX = scaledDestX + previewTileSizePx / 2
       const centerY = scaledDestY + previewTileSizePx / 2
       const vertices = getHexVertices(centerX, centerY, scaledHexSize, hexOrientation)
@@ -1160,7 +1160,10 @@ export function renderSelectiveTilePagePreview(
     // Draw label if enabled
     if (gridSettings.showNumbers && cell.label) {
       const hexDims = getHexDimensions(hexSize, hexOrientation)
-      const scale = previewTileSizePx / Math.max(hexDims.width, hexDims.height)
+      // Use feathered scale for consistent positioning
+      const featheredWidth = hexDims.width * (1 + featherRatio)
+      const featheredHeight = hexDims.height * (1 + featherRatio)
+      const scale = previewTileSizePx / Math.max(featheredWidth, featheredHeight)
       const scaledHexSize = hexSize * scale
       const centerX = scaledDestX + previewTileSizePx / 2
       const centerY = scaledDestY + previewTileSizePx / 2
