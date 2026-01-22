@@ -115,11 +115,22 @@
     @apply bg-navy-dark;
   }
   
+  .slider::-webkit-slider-runnable-track {
+    @apply w-full h-2 rounded-full;
+    @apply bg-navy-dark;
+  }
+  
+  .slider::-moz-range-track {
+    @apply w-full h-2 rounded-full;
+    @apply bg-navy-dark;
+  }
+  
   .slider::-webkit-slider-thumb {
     @apply appearance-none w-4 h-4 rounded-full;
     @apply bg-brass border-2 border-brass-dark;
     @apply cursor-pointer transition-transform duration-150;
     @apply hover:scale-110;
+    margin-top: -4px; /* Center thumb on track */
   }
   
   .slider::-moz-range-thumb {

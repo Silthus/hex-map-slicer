@@ -1,7 +1,7 @@
 'use client'
 
-import { useCallback, useMemo } from 'react'
-import type { HexSettings, HexOrientation, NumberingMode, PageOrientation, HexGridSettings, PrintSettings, NumberFontStyle, NumberPosition } from '@/types'
+import type { HexGridSettings, HexOrientation, HexSettings, NumberFontStyle, NumberingMode, NumberPosition, PageOrientation, PrintSettings } from '@/types';
+import { useCallback, useMemo } from 'react';
 
 type SettingsUpdate = 
   | { type: 'grid'; changes: Partial<HexGridSettings> }
