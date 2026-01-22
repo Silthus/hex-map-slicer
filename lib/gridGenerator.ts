@@ -39,9 +39,10 @@ function generateLabel(
       return String(index + 1)
     
     case 'padded': {
-      // Calculate padding width based on total count
-      const padWidth = Math.max(4, String(totalCount).length)
-      return String(index + 1).padStart(padWidth, '0')
+      // Format: CCRR where CC = column (2 digits), RR = row (2 digits)
+      const colStr = String(col).padStart(2, '0')
+      const rowStr = String(row).padStart(2, '0')
+      return `${colStr}${rowStr}`
     }
     
     case 'alphaCoord': {

@@ -479,16 +479,33 @@ function drawHexGrid(
   
   // Draw hex numbers
   if (grid.showNumbers) {
-    // Calculate font size based on hex size
-    const fontSize = Math.max(8, Math.min(20, settings.grid.hexSize * 0.25)) * scale
-    ctx.font = `bold ${fontSize}px "JetBrains Mono", monospace`
+    // Calculate base font size and apply multiplier
+    const baseFontSize = Math.max(8, Math.min(20, settings.grid.hexSize * 0.25)) * scale
+    const fontSize = baseFontSize * (grid.numberFontSize || 1.0)
+    
+    // Build font style string
+    const fontStyle = grid.numberFontStyle === 'boldItalic' ? 'bold italic' :
+                      grid.numberFontStyle === 'bold' ? 'bold' :
+                      grid.numberFontStyle === 'italic' ? 'italic' : ''
+    
+    ctx.font = `${fontStyle} ${fontSize}px "JetBrains Mono", monospace`.trim()
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = grid.numberColor
     ctx.globalAlpha = grid.numberOpacity / 100
     
+    // Calculate position offset based on numberPosition setting
+    const positionOffset = grid.numberPosition === 'top' ? -0.3 :
+                          grid.numberPosition === 'bottom' ? 0.3 : 0
+    
+    // Get user-defined offsets (as percentage of hex size, default to 0)
+    const userOffsetX = (grid.numberOffsetX || 0) / 100
+    const userOffsetY = (grid.numberOffsetY || 0) / 100
+    
     cells.forEach(cell => {
-      ctx.fillText(cell.label, cell.centerX * scale, cell.centerY * scale)
+      const x = cell.centerX * scale + (settings.grid.hexSize * userOffsetX * scale)
+      const y = cell.centerY * scale + (settings.grid.hexSize * (positionOffset + userOffsetY) * scale)
+      ctx.fillText(cell.label, x, y)
     })
     
     ctx.globalAlpha = 1

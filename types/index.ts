@@ -4,6 +4,12 @@ export type HexOrientation = 'pointy' | 'flat'
 // Numbering mode types
 export type NumberingMode = 'sequential' | 'padded' | 'alphaCoord' | 'axialCoord'
 
+// Number font style types
+export type NumberFontStyle = 'normal' | 'bold' | 'italic' | 'boldItalic'
+
+// Number position types
+export type NumberPosition = 'top' | 'middle' | 'bottom'
+
 // Page orientation
 export type PageOrientation = 'portrait' | 'landscape'
 
@@ -28,6 +34,12 @@ export interface HexGridSettings {
   showLines: boolean
   showNumbers: boolean
   numberingMode: NumberingMode
+  // Number styling
+  numberFontSize: number // Font size multiplier (0.5 - 2.0)
+  numberFontStyle: NumberFontStyle
+  numberPosition: NumberPosition
+  numberOffsetX: number // Horizontal offset (-50 to 50, percentage of hex size)
+  numberOffsetY: number // Vertical offset (-50 to 50, percentage of hex size)
   // Grid alignment offset
   offsetX: number
   offsetY: number
@@ -182,6 +194,11 @@ export const DEFAULT_HEX_GRID_SETTINGS: HexGridSettings = {
   showLines: true,
   showNumbers: true,
   numberingMode: 'padded',
+  numberFontSize: 1.0,
+  numberFontStyle: 'bold',
+  numberPosition: 'middle',
+  numberOffsetX: 0,
+  numberOffsetY: 0,
   offsetX: 0,
   offsetY: 0,
   hexSize: 50,

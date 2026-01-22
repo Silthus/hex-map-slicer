@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useMemo } from 'react'
-import type { HexSettings, HexOrientation, NumberingMode, PageOrientation, HexGridSettings, PrintSettings } from '@/types'
+import type { HexSettings, HexOrientation, NumberingMode, PageOrientation, HexGridSettings, PrintSettings, NumberFontStyle, NumberPosition } from '@/types'
 
 type SettingsUpdate = 
   | { type: 'grid'; changes: Partial<HexGridSettings> }
@@ -52,6 +52,26 @@ export function ControlPanel({ settings, onSettingsChange, hasImage }: ControlPa
 
   const handleHexSizeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     onSettingsChange({ type: 'grid', changes: { hexSize: parseInt(e.target.value, 10) } })
+  }, [onSettingsChange])
+
+  const handleNumberFontSizeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onSettingsChange({ type: 'grid', changes: { numberFontSize: parseFloat(e.target.value) } })
+  }, [onSettingsChange])
+
+  const handleNumberFontStyleChange = useCallback((style: NumberFontStyle) => {
+    onSettingsChange({ type: 'grid', changes: { numberFontStyle: style } })
+  }, [onSettingsChange])
+
+  const handleNumberPositionChange = useCallback((position: NumberPosition) => {
+    onSettingsChange({ type: 'grid', changes: { numberPosition: position } })
+  }, [onSettingsChange])
+
+  const handleNumberOffsetXChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onSettingsChange({ type: 'grid', changes: { numberOffsetX: parseInt(e.target.value, 10) } })
+  }, [onSettingsChange])
+
+  const handleNumberOffsetYChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onSettingsChange({ type: 'grid', changes: { numberOffsetY: parseInt(e.target.value, 10) } })
   }, [onSettingsChange])
 
   // Print setting handlers
@@ -223,7 +243,7 @@ export function ControlPanel({ settings, onSettingsChange, hasImage }: ControlPa
                   className="select"
                 >
                   <option value="sequential">Sequential (1, 2, 3...)</option>
-                  <option value="padded">Padded (0001, 0002...)</option>
+                  <option value="padded">Coordinates (0102, 0305...)</option>
                   <option value="alphaCoord">Alpha Coords (A1, B2...)</option>
                   <option value="axialCoord">Axial Coords (0,0 / 1,0...)</option>
                 </select>
@@ -258,6 +278,146 @@ export function ControlPanel({ settings, onSettingsChange, hasImage }: ControlPa
                 />
                 <span className="font-mono text-xs text-parchment/50 w-10 text-right">
                   {grid.numberOpacity}%
+                </span>
+              </div>
+
+              {/* Font Size */}
+              <div className="flex items-center gap-3">
+                <label className="label mb-0 min-w-[60px]">Size</label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={grid.numberFontSize}
+                  onChange={handleNumberFontSizeChange}
+                  className="slider flex-1"
+                />
+                <span className="font-mono text-xs text-parchment/50 w-10 text-right">
+                  {grid.numberFontSize.toFixed(1)}x
+                </span>
+              </div>
+
+              {/* Font Style */}
+              <div>
+                <label className="label">Style</label>
+                <div className="grid grid-cols-4 gap-1">
+                  <button
+                    onClick={() => handleNumberFontStyleChange('normal')}
+                    className={`py-1.5 px-2 rounded text-xs font-mono transition-all ${
+                      grid.numberFontStyle === 'normal'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberFontStyle === 'normal'}
+                  >
+                    Normal
+                  </button>
+                  <button
+                    onClick={() => handleNumberFontStyleChange('bold')}
+                    className={`py-1.5 px-2 rounded text-xs font-mono font-bold transition-all ${
+                      grid.numberFontStyle === 'bold'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberFontStyle === 'bold'}
+                  >
+                    Bold
+                  </button>
+                  <button
+                    onClick={() => handleNumberFontStyleChange('italic')}
+                    className={`py-1.5 px-2 rounded text-xs font-mono italic transition-all ${
+                      grid.numberFontStyle === 'italic'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberFontStyle === 'italic'}
+                  >
+                    Italic
+                  </button>
+                  <button
+                    onClick={() => handleNumberFontStyleChange('boldItalic')}
+                    className={`py-1.5 px-2 rounded text-xs font-mono font-bold italic transition-all ${
+                      grid.numberFontStyle === 'boldItalic'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberFontStyle === 'boldItalic'}
+                  >
+                    B+I
+                  </button>
+                </div>
+              </div>
+
+              {/* Position */}
+              <div>
+                <label className="label">Position</label>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleNumberPositionChange('top')}
+                    className={`flex-1 py-1.5 px-2 rounded text-xs font-mono transition-all ${
+                      grid.numberPosition === 'top'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberPosition === 'top'}
+                  >
+                    Top
+                  </button>
+                  <button
+                    onClick={() => handleNumberPositionChange('middle')}
+                    className={`flex-1 py-1.5 px-2 rounded text-xs font-mono transition-all ${
+                      grid.numberPosition === 'middle'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberPosition === 'middle'}
+                  >
+                    Middle
+                  </button>
+                  <button
+                    onClick={() => handleNumberPositionChange('bottom')}
+                    className={`flex-1 py-1.5 px-2 rounded text-xs font-mono transition-all ${
+                      grid.numberPosition === 'bottom'
+                        ? 'bg-brass text-navy-dark'
+                        : 'bg-navy-dark text-parchment/70 hover:text-parchment border border-teal/20'
+                    }`}
+                    aria-pressed={grid.numberPosition === 'bottom'}
+                  >
+                    Bottom
+                  </button>
+                </div>
+              </div>
+
+              {/* Horizontal Offset */}
+              <div className="flex items-center gap-3">
+                <label className="label mb-0 min-w-[60px]">H Offset</label>
+                <input
+                  type="range"
+                  min="-50"
+                  max="50"
+                  value={grid.numberOffsetX}
+                  onChange={handleNumberOffsetXChange}
+                  className="slider flex-1"
+                />
+                <span className="font-mono text-xs text-parchment/50 w-10 text-right">
+                  {grid.numberOffsetX}%
+                </span>
+              </div>
+
+              {/* Vertical Offset */}
+              <div className="flex items-center gap-3">
+                <label className="label mb-0 min-w-[60px]">V Offset</label>
+                <input
+                  type="range"
+                  min="-50"
+                  max="50"
+                  value={grid.numberOffsetY}
+                  onChange={handleNumberOffsetYChange}
+                  className="slider flex-1"
+                />
+                <span className="font-mono text-xs text-parchment/50 w-10 text-right">
+                  {grid.numberOffsetY}%
                 </span>
               </div>
             </div>
