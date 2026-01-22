@@ -166,6 +166,7 @@ export interface SelectivePrintSettings {
   paperWidth: number // mm
   paperHeight: number // mm
   dpi: number
+  featherMm: number // bleed/feather amount in mm (extra overlap beyond hex edges for cutting tolerance)
 }
 
 // Selective tile page (tiles packed efficiently)
@@ -230,6 +231,7 @@ export const DEFAULT_SELECTIVE_PRINT_SETTINGS: SelectivePrintSettings = {
   paperWidth: 210, // A4
   paperHeight: 297,
   dpi: 300,
+  featherMm: 0, // default to no feather
 }
 
 // A4 dimensions at different DPIs

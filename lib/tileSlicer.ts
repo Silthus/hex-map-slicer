@@ -331,13 +331,15 @@ export function generateSpatialTilePages(
 /**
  * Extract a single hex tile from the source canvas
  * Returns a canvas with the hex clipped and centered
+ * @param featherRatio - Ratio of feather/bleed (0 = no feather, 0.1 = 10% extra)
  */
 export function extractHexTile(
   sourceCanvas: HTMLCanvasElement,
   cell: HexCell,
   hexSize: number,
   hexOrientation: HexOrientation,
-  outputSize: number
+  outputSize: number,
+  featherRatio: number = 0
 ): HTMLCanvasElement {
   const hexDims = getHexDimensions(hexSize, hexOrientation)
   
@@ -359,8 +361,9 @@ export function extractHexTile(
   // Save context and set up clipping
   ctx.save()
   
-  // Create hex clipping path at output size
-  const scaledSize = hexSize * scale
+  // Create hex clipping path at output size with feather expansion
+  // The clipping hex expands outward by featherRatio
+  const scaledSize = hexSize * scale * (1 + featherRatio)
   const vertices = getHexVertices(centerX, centerY, scaledSize, hexOrientation)
   
   ctx.beginPath()
@@ -371,11 +374,13 @@ export function extractHexTile(
   ctx.closePath()
   ctx.clip()
   
-  // Calculate source region
-  const srcX = cell.centerX - hexDims.width / 2
-  const srcY = cell.centerY - hexDims.height / 2
-  const srcWidth = hexDims.width
-  const srcHeight = hexDims.height
+  // Calculate source region - expand proportionally to match feather
+  const expandedWidth = hexDims.width * (1 + featherRatio)
+  const expandedHeight = hexDims.height * (1 + featherRatio)
+  const srcX = cell.centerX - expandedWidth / 2
+  const srcY = cell.centerY - expandedHeight / 2
+  const srcWidth = expandedWidth
+  const srcHeight = expandedHeight
   
   // Calculate destination to center the hex
   const destWidth = srcWidth * scale
@@ -970,17 +975,23 @@ export function renderSelectiveTilePage(
   ctx.fillStyle = '#ffffff'
   ctx.fillRect(0, 0, outputWidth, outputHeight)
   
+  // Calculate feather ratio from settings
+  // featherMm is in mm, tileSizeCm is in cm, so convert to ratio
+  const tileSizeMm = settings.tileSizeCm * 10
+  const featherRatio = tileSizeMm > 0 ? settings.featherMm / tileSizeMm : 0
+  
   // Draw each tile
   page.tiles.forEach(placement => {
     const { cell, destX, destY, destSize } = placement
     
-    // Extract the hex tile
+    // Extract the hex tile with feather
     const tileCanvas = extractHexTile(
       sourceCanvas,
       cell,
       hexSize,
       hexOrientation,
-      Math.round(destSize)
+      Math.round(destSize),
+      featherRatio
     )
     
     // Draw the tile at its destination
@@ -1096,6 +1107,10 @@ export function renderSelectiveTilePagePreview(
   const fullTileSizePx = page.tiles[0].destSize
   const previewTileSizePx = fullTileSizePx * previewScale
   
+  // Calculate feather ratio from settings
+  const tileSizeMm = settings.tileSizeCm * 10
+  const featherRatio = tileSizeMm > 0 ? settings.featherMm / tileSizeMm : 0
+  
   // Draw each tile at its scaled position
   page.tiles.forEach(placement => {
     const { cell, destX, destY } = placement
@@ -1104,13 +1119,14 @@ export function renderSelectiveTilePagePreview(
     const scaledDestX = destX * previewScale
     const scaledDestY = destY * previewScale
     
-    // Extract and draw tile at preview size
+    // Extract and draw tile at preview size with feather
     const tileCanvas = extractHexTile(
       sourceCanvas,
       cell,
       hexSize,
       hexOrientation,
-      Math.round(previewTileSizePx)
+      Math.round(previewTileSizePx),
+      featherRatio
     )
     
     ctx.drawImage(tileCanvas, scaledDestX, scaledDestY)

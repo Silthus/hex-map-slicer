@@ -65,6 +65,10 @@ export function SelectivePrintSettingsPanel({
     onSettingsChange({ marginMm: parseInt(e.target.value, 10) })
   }, [onSettingsChange])
 
+  const handleFeatherChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    onSettingsChange({ featherMm: parseFloat(e.target.value) })
+  }, [onSettingsChange])
+
   const handleOrientationChange = useCallback((orientation: PageOrientation) => {
     onSettingsChange({ orientation })
   }, [onSettingsChange])
@@ -186,6 +190,37 @@ export function SelectivePrintSettingsPanel({
         />
         <p className="font-mono text-xs text-parchment/40 mt-1">
           Space between individual hex tiles
+        </p>
+      </div>
+
+      {/* Feather/Bleed */}
+      <div>
+        <label className="label">
+          Cutting Margin
+          <span className="text-brass ml-2">{settings.featherMm}mm</span>
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min="0"
+            max="5"
+            step="0.5"
+            value={settings.featherMm}
+            onChange={handleFeatherChange}
+            className="slider flex-1"
+          />
+          <input
+            type="number"
+            min="0"
+            max="5"
+            step="0.5"
+            value={settings.featherMm}
+            onChange={handleFeatherChange}
+            className="w-16 px-2 py-1 bg-navy-dark border border-teal/20 rounded font-mono text-sm text-parchment text-center"
+          />
+        </div>
+        <p className="font-mono text-xs text-parchment/40 mt-1">
+          Extra overlap beyond hex edges for cutting tolerance
         </p>
       </div>
 
