@@ -287,7 +287,7 @@ export function ControlPanel({ settings, onSettingsChange, hasImage }: ControlPa
                 <input
                   type="range"
                   min="0.5"
-                  max="2"
+                  max="5"
                   step="0.1"
                   value={grid.numberFontSize}
                   onChange={handleNumberFontSizeChange}
@@ -522,6 +522,7 @@ export function ControlPanel({ settings, onSettingsChange, hasImage }: ControlPa
             type="range"
             min="0"
             max="20"
+            step="1"
             value={print.marginMm}
             onChange={handleMarginChange}
             className="slider"

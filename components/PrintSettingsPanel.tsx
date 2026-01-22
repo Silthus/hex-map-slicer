@@ -235,6 +235,7 @@ export function PrintSettingsPanel({ settings, onSettingsChange, imageWidth, hex
           type="range"
           min="0"
           max="20"
+          step="1"
           value={settings.marginMm}
           onChange={handleMarginChange}
           className="slider"

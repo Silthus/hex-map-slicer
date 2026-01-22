@@ -179,6 +179,7 @@ export function SelectivePrintSettingsPanel({
           type="range"
           min="0"
           max="15"
+          step="1"
           value={settings.tileMarginMm}
           onChange={handleTileMarginChange}
           className="slider"
@@ -198,6 +199,7 @@ export function SelectivePrintSettingsPanel({
           type="range"
           min="0"
           max="20"
+          step="1"
           value={settings.marginMm}
           onChange={handleMarginChange}
           className="slider"
