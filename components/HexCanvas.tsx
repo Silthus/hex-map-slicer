@@ -3,6 +3,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import type { UploadedImage, HexSettings, HexCell } from '@/types'
 import { generateLabeledHexGrid } from '@/lib/gridGenerator'
+import { findHexAtPoint } from '@/lib/hexMath'
 
 // Zoom constants
 const MIN_ZOOM = 0.25
@@ -13,9 +14,20 @@ interface HexCanvasProps {
   image: UploadedImage
   settings: HexSettings
   fullScreen?: boolean
+  // Select mode props
+  selectMode?: boolean
+  selectedTileIds?: string[]
+  onTileClick?: (q: number, r: number) => void
 }
 
-export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProps) {
+export function HexCanvas({ 
+  image, 
+  settings, 
+  fullScreen = false,
+  selectMode = false,
+  selectedTileIds = [],
+  onTileClick,
+}: HexCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imageRef = useRef<HTMLImageElement | null>(null)
@@ -25,6 +37,9 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 })
   const [offset, setOffset] = useState({ x: settings.grid.offsetX, y: settings.grid.offsetY })
   const [zoom, setZoom] = useState(1)
+  
+  // Create a Set for faster lookup of selected tiles
+  const selectedTileSet = useMemo(() => new Set(selectedTileIds), [selectedTileIds])
   
   // Sync offset with settings
   useEffect(() => {
@@ -131,21 +146,46 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
     ctx.drawImage(img, 0, 0, canvasWidth, canvasHeight)
 
     // Draw hex grid
-    if (settings.grid.showLines || settings.grid.showNumbers) {
-      drawHexGrid(ctx, hexCells, settings, scale)
+    if (settings.grid.showLines || settings.grid.showNumbers || selectMode) {
+      drawHexGrid(ctx, hexCells, settings, scale, selectMode ? selectedTileSet : undefined)
     }
-  }, [displaySize, hexCells, settings, image.width, image.height])
+  }, [displaySize, hexCells, settings, image.width, image.height, selectMode, selectedTileSet])
+
+  // Handle click for select mode
+  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+    if (!selectMode || !onTileClick) return
+    
+    const canvas = canvasRef.current
+    if (!canvas) return
+    
+    const rect = canvas.getBoundingClientRect()
+    const clickX = e.clientX - rect.left
+    const clickY = e.clientY - rect.top
+    
+    // Scale click to image coordinates
+    const scaleX = image.width / displaySize.width
+    const scaleY = image.height / displaySize.height
+    const imageX = clickX * scaleX
+    const imageY = clickY * scaleY
+    
+    // Find the hex at this position
+    const cell = findHexAtPoint(imageX, imageY, hexCells)
+    if (cell) {
+      onTileClick(cell.q, cell.r)
+    }
+  }, [selectMode, onTileClick, image.width, image.height, displaySize.width, displaySize.height, hexCells])
 
   // Handle mouse events for dragging
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button !== 0) return // Only left click
+    if (selectMode) return // Don't drag in select mode
     
     setIsDragging(true)
     setDragStart({ x: e.clientX - offset.x, y: e.clientY - offset.y })
-  }, [offset])
+  }, [offset, selectMode])
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging) return
+    if (!isDragging || selectMode) return
     
     // Scale mouse movement to image coordinates
     const scale = image.width / displaySize.width
@@ -154,7 +194,7 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
       y: (e.clientY - dragStart.y),
     }
     setOffset(newOffset)
-  }, [isDragging, dragStart, image.width, displaySize.width])
+  }, [isDragging, selectMode, dragStart, image.width, displaySize.width])
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false)
@@ -162,13 +202,14 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
 
   // Touch events
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (selectMode) return
     const touch = e.touches[0]
     setIsDragging(true)
     setDragStart({ x: touch.clientX - offset.x, y: touch.clientY - offset.y })
-  }, [offset])
+  }, [offset, selectMode])
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return
+    if (!isDragging || selectMode) return
     
     const touch = e.touches[0]
     const newOffset = {
@@ -176,11 +217,31 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
       y: touch.clientY - dragStart.y,
     }
     setOffset(newOffset)
-  }, [isDragging, dragStart])
+  }, [isDragging, selectMode, dragStart])
 
-  const handleTouchEnd = useCallback(() => {
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (selectMode && onTileClick && e.changedTouches.length > 0) {
+      // Handle tap in select mode
+      const touch = e.changedTouches[0]
+      const canvas = canvasRef.current
+      if (!canvas) return
+      
+      const rect = canvas.getBoundingClientRect()
+      const clickX = touch.clientX - rect.left
+      const clickY = touch.clientY - rect.top
+      
+      const scaleX = image.width / displaySize.width
+      const scaleY = image.height / displaySize.height
+      const imageX = clickX * scaleX
+      const imageY = clickY * scaleY
+      
+      const cell = findHexAtPoint(imageX, imageY, hexCells)
+      if (cell) {
+        onTileClick(cell.q, cell.r)
+      }
+    }
     setIsDragging(false)
-  }, [])
+  }, [selectMode, onTileClick, image.width, image.height, displaySize.width, displaySize.height, hexCells])
 
   // Zoom via scroll wheel - use native event listener for non-passive option
   useEffect(() => {
@@ -209,6 +270,12 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
     setZoom(1)
   }, [])
 
+  // Cursor style based on mode
+  const getCursorClass = () => {
+    if (selectMode) return 'cursor-pointer'
+    return isDragging ? 'cursor-grabbing' : 'cursor-grab'
+  }
+
   // For full-screen mode, render a simpler container
   if (fullScreen) {
     return (
@@ -220,7 +287,7 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
           ref={canvasRef}
           className={`
             shadow-2xl shadow-black/40
-            ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+            ${getCursorClass()}
           `}
           style={{
             width: displaySize.width || 'auto',
@@ -228,6 +295,7 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
             transform: `scale(${zoom})`,
             transformOrigin: 'center center',
           }}
+          onClick={handleCanvasClick}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -236,13 +304,17 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           role="img"
-          aria-label="Hex map preview with grid overlay. Drag to adjust grid position."
+          aria-label={selectMode 
+            ? "Hex map in selection mode. Click tiles to select or deselect them." 
+            : "Hex map preview with grid overlay. Drag to adjust grid position."}
         />
 
-        {/* Offset indicator */}
+        {/* Mode indicator */}
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-navy/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-teal/20">
           <span className="font-mono text-xs text-parchment/60">
-            Offset: {Math.round(offset.x)}px, {Math.round(offset.y)}px
+            {selectMode 
+              ? `Click tiles to select • ${selectedTileIds.length} selected`
+              : `Offset: ${Math.round(offset.x)}px, ${Math.round(offset.y)}px`}
           </span>
         </div>
 
@@ -294,12 +366,13 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
           ref={canvasRef}
           className={`
             rounded-lg shadow-lg shadow-black/20
-            ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}
+            ${getCursorClass()}
           `}
           style={{
             width: displaySize.width || 'auto',
             height: displaySize.height || 'auto',
           }}
+          onClick={handleCanvasClick}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
@@ -308,24 +381,30 @@ export function HexCanvas({ image, settings, fullScreen = false }: HexCanvasProp
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
           role="img"
-          aria-label="Hex map preview with grid overlay. Drag to adjust grid position."
+          aria-label={selectMode 
+            ? "Hex map in selection mode. Click tiles to select or deselect them." 
+            : "Hex map preview with grid overlay. Drag to adjust grid position."}
         />
 
-        {/* Drag hint */}
+        {/* Hint text */}
         {!isDragging && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 pointer-events-none">
             <div className="bg-navy-dark/80 backdrop-blur-sm px-3 py-1 rounded-full">
               <span className="font-mono text-xs text-parchment/50">
-                Drag to align grid
+                {selectMode ? 'Click tiles to select' : 'Drag to align grid'}
               </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Offset display */}
+      {/* Status display */}
       <div className="flex items-center justify-center gap-4 font-mono text-xs text-parchment/40">
-        <span>Offset: {Math.round(offset.x)}px, {Math.round(offset.y)}px</span>
+        <span>
+          {selectMode 
+            ? `${selectedTileIds.length} tiles selected`
+            : `Offset: ${Math.round(offset.x)}px, ${Math.round(offset.y)}px`}
+        </span>
       </div>
     </div>
   )
@@ -338,9 +417,41 @@ function drawHexGrid(
   ctx: CanvasRenderingContext2D,
   cells: HexCell[],
   settings: HexSettings,
-  scale: number = 1
+  scale: number = 1,
+  selectedTileSet?: Set<string>
 ) {
   const { grid } = settings
+  
+  // Draw selected hex fill first (so outlines draw on top)
+  if (selectedTileSet && selectedTileSet.size > 0) {
+    cells.forEach(cell => {
+      const id = `${cell.q}:${cell.r}`
+      if (selectedTileSet.has(id)) {
+        ctx.beginPath()
+        cell.vertices.forEach((vertex, i) => {
+          const x = vertex.x * scale
+          const y = vertex.y * scale
+          if (i === 0) {
+            ctx.moveTo(x, y)
+          } else {
+            ctx.lineTo(x, y)
+          }
+        })
+        ctx.closePath()
+        
+        // Fill with semi-transparent teal
+        ctx.fillStyle = '#14b8a6'
+        ctx.globalAlpha = 0.35
+        ctx.fill()
+        ctx.globalAlpha = 1
+        
+        // Draw selection border
+        ctx.strokeStyle = '#14b8a6'
+        ctx.lineWidth = Math.max(2, 3 * scale)
+        ctx.stroke()
+      }
+    })
+  }
   
   // Draw hex outlines
   if (grid.showLines) {
@@ -381,6 +492,42 @@ function drawHexGrid(
     })
     
     ctx.globalAlpha = 1
+  }
+  
+  // Draw checkmarks on selected tiles
+  if (selectedTileSet && selectedTileSet.size > 0) {
+    const checkSize = Math.max(12, settings.grid.hexSize * 0.2) * scale
+    
+    cells.forEach(cell => {
+      const id = `${cell.q}:${cell.r}`
+      if (selectedTileSet.has(id)) {
+        const cx = cell.centerX * scale
+        const cy = cell.centerY * scale
+        
+        // Draw checkmark background circle
+        ctx.beginPath()
+        ctx.arc(cx, cy - settings.grid.hexSize * 0.25 * scale, checkSize * 0.8, 0, Math.PI * 2)
+        ctx.fillStyle = '#14b8a6'
+        ctx.globalAlpha = 0.9
+        ctx.fill()
+        ctx.globalAlpha = 1
+        
+        // Draw checkmark
+        ctx.strokeStyle = '#ffffff'
+        ctx.lineWidth = Math.max(2, checkSize * 0.2)
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        
+        const checkX = cx - checkSize * 0.35
+        const checkY = cy - settings.grid.hexSize * 0.25 * scale
+        
+        ctx.beginPath()
+        ctx.moveTo(checkX - checkSize * 0.2, checkY)
+        ctx.lineTo(checkX, checkY + checkSize * 0.2)
+        ctx.lineTo(checkX + checkSize * 0.4, checkY - checkSize * 0.25)
+        ctx.stroke()
+      }
+    })
   }
 }
 

@@ -1,8 +1,10 @@
-import type { AppSettings, UploadedImage } from '@/types'
-import { DEFAULT_SETTINGS } from '@/types'
+import type { AppSettings, UploadedImage, SelectivePrintSettings } from '@/types'
+import { DEFAULT_SETTINGS, DEFAULT_SELECTIVE_PRINT_SETTINGS } from '@/types'
 
 const STORAGE_VERSION = 'v1'
 const STORAGE_KEY = `hexTiler:${STORAGE_VERSION}:settings`
+const SELECTED_TILES_KEY = `hexTiler:${STORAGE_VERSION}:selectedTiles`
+const SELECTIVE_PRINT_KEY = `hexTiler:${STORAGE_VERSION}:selectivePrint`
 const DB_NAME = 'hexTilerDB'
 const DB_VERSION = 1
 const IMAGE_STORE = 'images'
@@ -146,6 +148,84 @@ export function migrateSettings(): void {
     }
   } catch {
     // Ignore migration errors
+  }
+}
+
+// =============================================================================
+// Selected tiles storage
+// =============================================================================
+
+/**
+ * Load selected tile IDs from localStorage
+ */
+export function loadSelectedTiles(): string[] {
+  const stored = getLocalStorage(SELECTED_TILES_KEY)
+  
+  if (!stored) {
+    return []
+  }
+  
+  try {
+    const parsed = JSON.parse(stored)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Save selected tile IDs to localStorage
+ */
+export function saveSelectedTiles(tileIds: string[]): boolean {
+  try {
+    const json = JSON.stringify(tileIds)
+    return setLocalStorage(SELECTED_TILES_KEY, json)
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Clear selected tiles from localStorage
+ */
+export function clearSelectedTiles(): void {
+  removeLocalStorage(SELECTED_TILES_KEY)
+}
+
+// =============================================================================
+// Selective print settings storage
+// =============================================================================
+
+/**
+ * Load selective print settings from localStorage
+ */
+export function loadSelectivePrintSettings(): SelectivePrintSettings {
+  const stored = getLocalStorage(SELECTIVE_PRINT_KEY)
+  
+  if (!stored) {
+    return DEFAULT_SELECTIVE_PRINT_SETTINGS
+  }
+  
+  try {
+    const parsed = JSON.parse(stored) as Partial<SelectivePrintSettings>
+    return {
+      ...DEFAULT_SELECTIVE_PRINT_SETTINGS,
+      ...parsed,
+    }
+  } catch {
+    return DEFAULT_SELECTIVE_PRINT_SETTINGS
+  }
+}
+
+/**
+ * Save selective print settings to localStorage
+ */
+export function saveSelectivePrintSettings(settings: SelectivePrintSettings): boolean {
+  try {
+    const json = JSON.stringify(settings)
+    return setLocalStorage(SELECTIVE_PRINT_KEY, json)
+  } catch {
+    return false
   }
 }
 

@@ -1,4 +1,4 @@
-import type { HexCell, HexOrientation, PrintSettings, SpatialTileLayout, SpatialTilePage, TileLayout, TilePage, TilePlacement } from '@/types'
+import type { HexCell, HexOrientation, PrintSettings, SelectivePrintSettings, SelectiveTileLayout, SelectiveTilePage, SpatialTileLayout, SpatialTilePage, TileLayout, TilePage, TilePlacement } from '@/types'
 import { getHexDimensions, getHexVertices, hexOverlapsRect } from './hexMath'
 
 /**
@@ -740,6 +740,363 @@ export function renderSpatialTilePagePreview(
   const previewTileSizePx = fullTileSizePx * previewScale
   
   // Draw each tile at its scaled spatial position
+  page.tiles.forEach(placement => {
+    const { cell, destX, destY } = placement
+    
+    // Scale positions from full resolution to preview
+    const scaledDestX = destX * previewScale
+    const scaledDestY = destY * previewScale
+    
+    // Extract and draw tile at preview size
+    const tileCanvas = extractHexTile(
+      sourceCanvas,
+      cell,
+      hexSize,
+      hexOrientation,
+      Math.round(previewTileSizePx)
+    )
+    
+    ctx.drawImage(tileCanvas, scaledDestX, scaledDestY)
+    
+    // Draw hex border if enabled
+    if (gridSettings.showLines) {
+      const hexDims = getHexDimensions(hexSize, hexOrientation)
+      const scale = previewTileSizePx / Math.max(hexDims.width, hexDims.height)
+      const scaledHexSize = hexSize * scale
+      const centerX = scaledDestX + previewTileSizePx / 2
+      const centerY = scaledDestY + previewTileSizePx / 2
+      const vertices = getHexVertices(centerX, centerY, scaledHexSize, hexOrientation)
+      
+      ctx.strokeStyle = gridSettings.lineColor
+      ctx.globalAlpha = gridSettings.lineOpacity / 100
+      ctx.lineWidth = Math.max(0.5, scaledHexSize * 0.02)
+      
+      ctx.beginPath()
+      vertices.forEach((vertex, i) => {
+        if (i === 0) ctx.moveTo(vertex.x, vertex.y)
+        else ctx.lineTo(vertex.x, vertex.y)
+      })
+      ctx.closePath()
+      ctx.stroke()
+      ctx.globalAlpha = 1
+    }
+    
+    // Draw label if enabled
+    if (gridSettings.showNumbers && cell.label) {
+      const hexDims = getHexDimensions(hexSize, hexOrientation)
+      const scale = previewTileSizePx / Math.max(hexDims.width, hexDims.height)
+      const scaledHexSize = hexSize * scale
+      const centerX = scaledDestX + previewTileSizePx / 2
+      const centerY = scaledDestY + previewTileSizePx / 2
+      
+      const fontSize = Math.max(6, Math.min(scaledHexSize * 0.25, 14))
+      ctx.font = `bold ${fontSize}px "JetBrains Mono", monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = gridSettings.numberColor
+      ctx.globalAlpha = gridSettings.numberOpacity / 100
+      
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'
+      ctx.shadowBlur = 1
+      ctx.shadowOffsetX = 0.5
+      ctx.shadowOffsetY = 0.5
+      
+      ctx.fillText(cell.label, centerX, centerY)
+      
+      ctx.shadowColor = 'transparent'
+      ctx.globalAlpha = 1
+    }
+  })
+  
+  return previewCanvas
+}
+
+// =============================================================================
+// Selective Tile Mode Functions
+// =============================================================================
+
+/**
+ * Calculate layout for selective tile mode (custom tile size in cm)
+ */
+export function calculateSelectiveTileLayout(
+  tileSizeCm: number,
+  settings: SelectivePrintSettings,
+  selectedCount: number
+): SelectiveTileLayout {
+  const { orientation, marginMm, paperWidth, paperHeight, tileMarginMm, dpi } = settings
+  
+  // Get paper dimensions based on orientation
+  const pageWidthMm = orientation === 'landscape' ? paperHeight : paperWidth
+  const pageHeightMm = orientation === 'landscape' ? paperWidth : paperHeight
+  
+  // Printable area (excluding page margins)
+  const printableWidthMm = pageWidthMm - (marginMm * 2)
+  const printableHeightMm = pageHeightMm - (marginMm * 2)
+  
+  // Tile size in mm (converting from cm)
+  const tileSizeMm = tileSizeCm * 10
+  
+  // Effective tile size including margin
+  const effectiveTileSizeMm = tileSizeMm + tileMarginMm
+  
+  // Calculate how many tiles fit per row/column
+  const tilesPerRow = Math.max(1, Math.floor((printableWidthMm + tileMarginMm) / effectiveTileSizeMm))
+  const tilesPerCol = Math.max(1, Math.floor((printableHeightMm + tileMarginMm) / effectiveTileSizeMm))
+  
+  const tilesPerPage = tilesPerRow * tilesPerCol
+  const totalPages = Math.ceil(selectedCount / tilesPerPage)
+  
+  // Convert tile size to pixels at target DPI
+  const tileSizePx = (tileSizeMm / 25.4) * dpi
+  
+  return {
+    tilesPerRow,
+    tilesPerCol,
+    tilesPerPage,
+    totalPages,
+    tileSizePx,
+    tileSizeMm,
+  }
+}
+
+/**
+ * Generate tile pages for selective mode (packs selected tiles efficiently)
+ */
+export function generateSelectiveTilePages(
+  selectedCells: HexCell[],
+  settings: SelectivePrintSettings
+): SelectiveTilePage[] {
+  const layout = calculateSelectiveTileLayout(
+    settings.tileSizeCm,
+    settings,
+    selectedCells.length
+  )
+  
+  const { tilesPerRow, tilesPerPage, tileSizePx } = layout
+  const { orientation, marginMm, paperWidth, paperHeight, tileMarginMm, dpi } = settings
+  
+  // Get paper dimensions based on orientation
+  const pageWidthMm = orientation === 'landscape' ? paperHeight : paperWidth
+  const pageHeightMm = orientation === 'landscape' ? paperWidth : paperHeight
+  
+  // Convert dimensions to pixels at target DPI
+  const mmToPx = dpi / 25.4
+  const marginPx = marginMm * mmToPx
+  const tileMarginPx = tileMarginMm * mmToPx
+  const tileSizeMm = settings.tileSizeCm * 10
+  const effectiveTileSizeMm = tileSizeMm + tileMarginMm
+  const effectiveTileSizePx = effectiveTileSizeMm * mmToPx
+  
+  // Calculate printable area
+  const printableWidthPx = (pageWidthMm - (marginMm * 2)) * mmToPx
+  const printableHeightPx = (pageHeightMm - (marginMm * 2)) * mmToPx
+  
+  // Recalculate actual tiles per row/col at pixel level
+  const actualTilesPerRow = Math.max(1, Math.floor((printableWidthPx + tileMarginPx) / effectiveTileSizePx))
+  const actualTilesPerCol = Math.max(1, Math.floor((printableHeightPx + tileMarginPx) / effectiveTileSizePx))
+  
+  // Center the grid of tiles in the printable area
+  const gridWidthPx = actualTilesPerRow * effectiveTileSizePx - tileMarginPx
+  const gridHeightPx = actualTilesPerCol * effectiveTileSizePx - tileMarginPx
+  const offsetX = marginPx + (printableWidthPx - gridWidthPx) / 2
+  const offsetY = marginPx + (printableHeightPx - gridHeightPx) / 2
+  
+  const pages: SelectiveTilePage[] = []
+  const actualTilesPerPage = actualTilesPerRow * actualTilesPerCol
+  
+  for (let pageIndex = 0; pageIndex < Math.ceil(selectedCells.length / actualTilesPerPage); pageIndex++) {
+    const startIdx = pageIndex * actualTilesPerPage
+    const endIdx = Math.min(startIdx + actualTilesPerPage, selectedCells.length)
+    const pageCells = selectedCells.slice(startIdx, endIdx)
+    
+    const tiles: TilePlacement[] = pageCells.map((cell, idx) => {
+      const row = Math.floor(idx / actualTilesPerRow)
+      const col = idx % actualTilesPerRow
+      
+      return {
+        cell,
+        destX: offsetX + col * effectiveTileSizePx,
+        destY: offsetY + row * effectiveTileSizePx,
+        destSize: tileSizePx,
+      }
+    })
+    
+    pages.push({
+      pageIndex,
+      tiles,
+    })
+  }
+  
+  return pages
+}
+
+/**
+ * Render a complete selective tile page
+ */
+export function renderSelectiveTilePage(
+  sourceCanvas: HTMLCanvasElement,
+  page: SelectiveTilePage,
+  hexSize: number,
+  hexOrientation: HexOrientation,
+  settings: SelectivePrintSettings,
+  gridSettings: {
+    showLines: boolean
+    lineColor: string
+    lineOpacity: number
+    showNumbers: boolean
+    numberColor: string
+    numberOpacity: number
+  }
+): HTMLCanvasElement {
+  const { dpi, orientation, paperWidth, paperHeight } = settings
+  
+  // Get paper dimensions based on orientation
+  const pageWidthMm = orientation === 'landscape' ? paperHeight : paperWidth
+  const pageHeightMm = orientation === 'landscape' ? paperWidth : paperHeight
+  
+  // Calculate output canvas size in pixels at target DPI
+  const outputWidth = Math.round((pageWidthMm / 25.4) * dpi)
+  const outputHeight = Math.round((pageHeightMm / 25.4) * dpi)
+  
+  // Create output canvas
+  const outputCanvas = document.createElement('canvas')
+  outputCanvas.width = outputWidth
+  outputCanvas.height = outputHeight
+  
+  const ctx = outputCanvas.getContext('2d')
+  if (!ctx) throw new Error('Failed to get canvas context')
+  
+  // Fill with white background
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, outputWidth, outputHeight)
+  
+  // Draw each tile
+  page.tiles.forEach(placement => {
+    const { cell, destX, destY, destSize } = placement
+    
+    // Extract the hex tile
+    const tileCanvas = extractHexTile(
+      sourceCanvas,
+      cell,
+      hexSize,
+      hexOrientation,
+      Math.round(destSize)
+    )
+    
+    // Draw the tile at its destination
+    ctx.drawImage(tileCanvas, destX, destY)
+    
+    // Draw hex border if enabled
+    if (gridSettings.showLines) {
+      const hexDims = getHexDimensions(hexSize, hexOrientation)
+      const scale = destSize / Math.max(hexDims.width, hexDims.height)
+      const scaledHexSize = hexSize * scale
+      const centerX = destX + destSize / 2
+      const centerY = destY + destSize / 2
+      const vertices = getHexVertices(centerX, centerY, scaledHexSize, hexOrientation)
+      
+      ctx.strokeStyle = gridSettings.lineColor
+      ctx.globalAlpha = gridSettings.lineOpacity / 100
+      ctx.lineWidth = Math.max(1, scaledHexSize * 0.02)
+      
+      ctx.beginPath()
+      vertices.forEach((vertex, i) => {
+        if (i === 0) ctx.moveTo(vertex.x, vertex.y)
+        else ctx.lineTo(vertex.x, vertex.y)
+      })
+      ctx.closePath()
+      ctx.stroke()
+      ctx.globalAlpha = 1
+    }
+    
+    // Draw label if enabled
+    if (gridSettings.showNumbers && cell.label) {
+      const hexDims = getHexDimensions(hexSize, hexOrientation)
+      const scale = destSize / Math.max(hexDims.width, hexDims.height)
+      const scaledHexSize = hexSize * scale
+      const centerX = destX + destSize / 2
+      const centerY = destY + destSize / 2
+      
+      const fontSize = Math.max(10, Math.min(scaledHexSize * 0.3, 36))
+      ctx.font = `bold ${fontSize}px "JetBrains Mono", monospace`
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = gridSettings.numberColor
+      ctx.globalAlpha = gridSettings.numberOpacity / 100
+      
+      // Add text shadow for better readability
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'
+      ctx.shadowBlur = 2
+      ctx.shadowOffsetX = 1
+      ctx.shadowOffsetY = 1
+      
+      ctx.fillText(cell.label, centerX, centerY)
+      
+      ctx.shadowColor = 'transparent'
+      ctx.globalAlpha = 1
+    }
+  })
+  
+  return outputCanvas
+}
+
+/**
+ * Render a preview of a selective tile page (lower resolution for display)
+ */
+export function renderSelectiveTilePagePreview(
+  sourceCanvas: HTMLCanvasElement,
+  page: SelectiveTilePage,
+  hexSize: number,
+  hexOrientation: HexOrientation,
+  settings: SelectivePrintSettings,
+  gridSettings: {
+    showLines: boolean
+    lineColor: string
+    lineOpacity: number
+    showNumbers: boolean
+    numberColor: string
+    numberOpacity: number
+  },
+  previewWidth: number
+): HTMLCanvasElement {
+  const { orientation, paperWidth, paperHeight, dpi } = settings
+  
+  // Get paper dimensions based on orientation
+  const pageWidthMm = orientation === 'landscape' ? paperHeight : paperWidth
+  const pageHeightMm = orientation === 'landscape' ? paperWidth : paperHeight
+  
+  // Calculate preview height maintaining aspect ratio
+  const aspectRatio = pageHeightMm / pageWidthMm
+  const previewHeight = previewWidth * aspectRatio
+  
+  // Create preview canvas
+  const previewCanvas = document.createElement('canvas')
+  previewCanvas.width = previewWidth
+  previewCanvas.height = previewHeight
+  
+  const ctx = previewCanvas.getContext('2d')
+  if (!ctx) throw new Error('Failed to get canvas context')
+  
+  // Fill with white background
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, previewWidth, previewHeight)
+  
+  if (page.tiles.length === 0) {
+    return previewCanvas
+  }
+  
+  // Calculate full-resolution page dimensions
+  const mmToPx = dpi / 25.4
+  const fullPageWidthPx = pageWidthMm * mmToPx
+  
+  // Scale from full resolution to preview
+  const previewScale = previewWidth / fullPageWidthPx
+  
+  // Calculate preview tile size
+  const fullTileSizePx = page.tiles[0].destSize
+  const previewTileSizePx = fullTileSizePx * previewScale
+  
+  // Draw each tile at its scaled position
   page.tiles.forEach(placement => {
     const { cell, destX, destY } = placement
     

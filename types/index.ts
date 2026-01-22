@@ -145,6 +145,33 @@ export interface ExportOptions {
   includeOverlap: boolean
 }
 
+// Selective print settings (for individual tile selection mode)
+export interface SelectivePrintSettings {
+  tileSizeCm: number // desired hex tile size in centimeters
+  tileMarginMm: number // margin between tiles in mm
+  marginMm: number // page margin in mm
+  orientation: PageOrientation
+  paperWidth: number // mm
+  paperHeight: number // mm
+  dpi: number
+}
+
+// Selective tile page (tiles packed efficiently)
+export interface SelectiveTilePage {
+  pageIndex: number
+  tiles: TilePlacement[]
+}
+
+// Layout info for selective tile mode
+export interface SelectiveTileLayout {
+  tilesPerRow: number
+  tilesPerCol: number
+  tilesPerPage: number
+  totalPages: number
+  tileSizePx: number // tile size in pixels at target DPI
+  tileSizeMm: number // tile size in mm
+}
+
 // Default settings
 export const DEFAULT_HEX_GRID_SETTINGS: HexGridSettings = {
   orientation: 'flat',
@@ -176,6 +203,16 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
 export const DEFAULT_SETTINGS: AppSettings = {
   grid: DEFAULT_HEX_GRID_SETTINGS,
   print: DEFAULT_PRINT_SETTINGS,
+}
+
+export const DEFAULT_SELECTIVE_PRINT_SETTINGS: SelectivePrintSettings = {
+  tileSizeCm: 3, // 3cm default tile size
+  tileMarginMm: 3,
+  marginMm: 5,
+  orientation: 'portrait',
+  paperWidth: 210, // A4
+  paperHeight: 297,
+  dpi: 300,
 }
 
 // A4 dimensions at different DPIs

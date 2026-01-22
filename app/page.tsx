@@ -9,7 +9,20 @@ import Link from 'next/link'
 import { useCallback } from 'react'
 
 export default function Home() {
-  const { image, setImage, clearCurrentImage, settings, updateSettings, resetSettings, isLoaded } = useApp()
+  const { 
+    image, 
+    setImage, 
+    clearCurrentImage, 
+    settings, 
+    updateSettings, 
+    resetSettings, 
+    isLoaded,
+    isSelectMode,
+    setSelectMode,
+    selectedTileIds,
+    toggleTileSelection,
+    clearSelectedTiles,
+  } = useApp()
 
   const handleImageUpload = useCallback((uploadedImage: UploadedImage) => {
     setImage(uploadedImage)
@@ -107,37 +120,98 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Clear image button */}
-          <button
-            onClick={clearCurrentImage}
-            className="btn-ghost text-xs flex items-center gap-1"
-            aria-label="Remove image"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span className="hidden sm:inline">Clear</span>
-          </button>
+          {/* Select mode controls */}
+          {isSelectMode ? (
+            <>
+              {/* Selection count */}
+              <span className="font-mono text-sm text-brass">
+                {selectedTileIds.length} tiles selected
+              </span>
 
-          {/* Reset settings button */}
-          <button
-            onClick={resetSettings}
-            className="btn-ghost text-xs"
-            aria-label="Reset all settings to defaults"
-          >
-            Reset
-          </button>
+              {/* Clear selection button */}
+              {selectedTileIds.length > 0 && (
+                <button
+                  onClick={clearSelectedTiles}
+                  className="btn-ghost text-xs"
+                  aria-label="Clear selection"
+                >
+                  Clear
+                </button>
+              )}
 
-          {/* Preview button */}
-          <Link
-            href="/preview"
-            className="btn-primary text-sm flex items-center gap-2 py-1.5 px-4"
-          >
-            <span>Preview</span>
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
+              {/* Cancel select mode */}
+              <button
+                onClick={() => setSelectMode(false)}
+                className="btn-ghost text-xs flex items-center gap-1"
+                aria-label="Exit select mode"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="hidden sm:inline">Cancel</span>
+              </button>
+
+              {/* Print Selected button */}
+              <Link
+                href="/preview/selective"
+                className={`btn-primary text-sm flex items-center gap-2 py-1.5 px-4 ${
+                  selectedTileIds.length === 0 ? 'opacity-50 pointer-events-none' : ''
+                }`}
+                aria-disabled={selectedTileIds.length === 0}
+              >
+                <span>Print Selected</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </>
+          ) : (
+            <>
+              {/* Clear image button */}
+              <button
+                onClick={clearCurrentImage}
+                className="btn-ghost text-xs flex items-center gap-1"
+                aria-label="Remove image"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                <span className="hidden sm:inline">Clear</span>
+              </button>
+
+              {/* Reset settings button */}
+              <button
+                onClick={resetSettings}
+                className="btn-ghost text-xs"
+                aria-label="Reset all settings to defaults"
+              >
+                Reset
+              </button>
+
+              {/* Select Tiles button */}
+              <button
+                onClick={() => setSelectMode(true)}
+                className="btn-ghost text-sm flex items-center gap-2"
+                aria-label="Select tiles for printing"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span className="hidden sm:inline">Select Tiles</span>
+              </button>
+
+              {/* Preview button */}
+              <Link
+                href="/preview"
+                className="btn-primary text-sm flex items-center gap-2 py-1.5 px-4"
+              >
+                <span>Preview</span>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -147,14 +221,19 @@ export default function Home() {
           image={image}
           settings={settings}
           fullScreen
+          selectMode={isSelectMode}
+          selectedTileIds={selectedTileIds}
+          onTileClick={toggleTileSelection}
         />
       </div>
 
-      {/* Floating grid controls */}
-      <FloatingGridControls
-        settings={settings.grid}
-        onSettingsChange={updateSettings}
-      />
+      {/* Floating grid controls - hidden in select mode */}
+      {!isSelectMode && (
+        <FloatingGridControls
+          settings={settings.grid}
+          onSettingsChange={updateSettings}
+        />
+      )}
     </main>
   )
 }

@@ -314,3 +314,44 @@ export function isHexOnBoundary(
   
   return false
 }
+
+/**
+ * Check if a point is inside a polygon using ray casting algorithm
+ */
+export function isPointInPolygon(px: number, py: number, vertices: Point[]): boolean {
+  let inside = false
+  const n = vertices.length
+  
+  for (let i = 0, j = n - 1; i < n; j = i++) {
+    const xi = vertices[i].x
+    const yi = vertices[i].y
+    const xj = vertices[j].x
+    const yj = vertices[j].y
+    
+    if (
+      yi > py !== yj > py &&
+      px < ((xj - xi) * (py - yi)) / (yj - yi) + xi
+    ) {
+      inside = !inside
+    }
+  }
+  
+  return inside
+}
+
+/**
+ * Find the hex cell at a given pixel position
+ */
+export function findHexAtPoint(
+  px: number,
+  py: number,
+  cells: HexCell[]
+): HexCell | null {
+  // Check each cell to find if point is inside
+  for (const cell of cells) {
+    if (isPointInPolygon(px, py, cell.vertices)) {
+      return cell
+    }
+  }
+  return null
+}
