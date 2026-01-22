@@ -1,0 +1,245 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Cartographic color palette */
+  --color-navy: #0a1628;
+  --color-navy-light: #132238;
+  --color-navy-dark: #060d18;
+  --color-parchment: #e8dcc4;
+  --color-parchment-light: #f5efe3;
+  --color-parchment-dark: #d4c4a8;
+  --color-brass: #c9a227;
+  --color-brass-light: #ddb83d;
+  --color-brass-dark: #a88820;
+  --color-teal: #2d6a6a;
+  --color-teal-light: #3d8a8a;
+  --color-teal-dark: #1d4a4a;
+  
+  /* Spacing scale */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+}
+
+@layer base {
+  body {
+    @apply bg-navy text-parchment antialiased;
+    font-feature-settings: "kern" 1, "liga" 1;
+  }
+  
+  ::selection {
+    @apply bg-brass/30 text-parchment;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-navy-dark;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-teal rounded-full;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-teal-light;
+  }
+}
+
+@layer components {
+  /* Paper texture overlay */
+  .paper-texture {
+    position: relative;
+  }
+  
+  .paper-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  
+  /* Card component */
+  .card {
+    @apply bg-navy-light border border-teal/20 rounded-lg;
+    box-shadow: 
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 2px 4px -2px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 0 rgba(232, 220, 196, 0.05);
+  }
+  
+  /* Button base */
+  .btn {
+    @apply px-4 py-2 rounded-md font-mono text-sm transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-brass/50 focus:ring-offset-2 focus:ring-offset-navy;
+  }
+  
+  .btn-primary {
+    @apply btn bg-brass text-navy-dark hover:bg-brass-light;
+    @apply active:scale-[0.98];
+  }
+  
+  .btn-secondary {
+    @apply btn bg-teal/20 text-parchment border border-teal/40;
+    @apply hover:bg-teal/30 hover:border-teal/60;
+  }
+  
+  .btn-ghost {
+    @apply btn text-parchment/70 hover:text-parchment hover:bg-parchment/5;
+  }
+  
+  /* Input base */
+  .input {
+    @apply w-full px-3 py-2 rounded-md font-mono text-sm;
+    @apply bg-navy-dark border border-teal/30 text-parchment;
+    @apply placeholder:text-parchment/30;
+    @apply focus:outline-none focus:border-brass/60 focus:ring-1 focus:ring-brass/30;
+    @apply transition-colors duration-200;
+  }
+  
+  /* Slider */
+  .slider {
+    @apply w-full h-2 rounded-full appearance-none cursor-pointer;
+    @apply bg-navy-dark;
+  }
+  
+  .slider::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full;
+    @apply bg-brass border-2 border-brass-dark;
+    @apply cursor-pointer transition-transform duration-150;
+    @apply hover:scale-110;
+  }
+  
+  .slider::-moz-range-thumb {
+    @apply w-4 h-4 rounded-full border-0;
+    @apply bg-brass;
+    @apply cursor-pointer;
+  }
+  
+  /* Checkbox */
+  .checkbox {
+    @apply w-4 h-4 rounded border-2 border-teal/50;
+    @apply bg-transparent appearance-none cursor-pointer;
+    @apply checked:bg-brass checked:border-brass;
+    @apply focus:ring-2 focus:ring-brass/30 focus:ring-offset-1 focus:ring-offset-navy;
+    @apply transition-colors duration-150;
+  }
+  
+  .checkbox:checked {
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='%230a1628' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  /* Radio */
+  .radio {
+    @apply w-4 h-4 rounded-full border-2 border-teal/50;
+    @apply bg-transparent appearance-none cursor-pointer;
+    @apply checked:border-brass checked:bg-brass;
+    @apply focus:ring-2 focus:ring-brass/30 focus:ring-offset-1 focus:ring-offset-navy;
+    @apply transition-colors duration-150;
+  }
+  
+  .radio:checked {
+    box-shadow: inset 0 0 0 3px var(--color-navy);
+  }
+  
+  /* Select dropdown */
+  .select {
+    @apply input pr-10 appearance-none cursor-pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23e8dcc4' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+  }
+  
+  /* Label */
+  .label {
+    @apply block text-sm font-mono text-parchment/70 mb-1;
+  }
+  
+  /* Section header */
+  .section-header {
+    @apply font-display text-lg text-brass tracking-wide uppercase;
+    @apply border-b border-teal/20 pb-2 mb-4;
+  }
+  
+  /* Animated dashed border */
+  .dashed-border-animated {
+    background-image: linear-gradient(90deg, var(--color-teal) 50%, transparent 50%),
+                      linear-gradient(90deg, var(--color-teal) 50%, transparent 50%),
+                      linear-gradient(0deg, var(--color-teal) 50%, transparent 50%),
+                      linear-gradient(0deg, var(--color-teal) 50%, transparent 50%);
+    background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+    background-size: 12px 2px, 12px 2px, 2px 12px, 2px 12px;
+    background-position: 0 0, 100% 100%, 0 100%, 100% 0;
+    animation: borderDance 1s linear infinite;
+  }
+  
+  @keyframes borderDance {
+    0% {
+      background-position: 0 0, 100% 100%, 0 100%, 100% 0;
+    }
+    100% {
+      background-position: 12px 0, calc(100% - 12px) 100%, 0 calc(100% - 12px), 100% 12px;
+    }
+  }
+  
+  /* Page tile */
+  .page-tile {
+    @apply relative overflow-hidden rounded-lg;
+    @apply bg-navy-dark border border-teal/20;
+    @apply transition-all duration-300;
+    @apply hover:border-brass/50 hover:shadow-lg hover:shadow-brass/10;
+    content-visibility: auto;
+    contain-intrinsic-size: 0 200px;
+  }
+  
+  .page-tile::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, transparent 0%, rgba(201, 162, 39, 0.1) 100%);
+  }
+  
+  .page-tile:hover::after {
+    @apply opacity-100;
+  }
+}
+
+@layer utilities {
+  /* Staggered animation delays */
+  .delay-100 { animation-delay: 100ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+  
+  /* Text gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, var(--color-brass) 0%, var(--color-parchment) 100%);
+  }
+  
+  /* Glow effect */
+  .glow-brass {
+    box-shadow: 0 0 20px rgba(201, 162, 39, 0.3);
+  }
+  
+  /* Topographic pattern */
+  .bg-topographic {
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%232d6a6a' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+  }
+}
