@@ -162,9 +162,9 @@ export function HexCanvas({
     const clickX = e.clientX - rect.left
     const clickY = e.clientY - rect.top
     
-    // Scale click to image coordinates
-    const scaleX = image.width / displaySize.width
-    const scaleY = image.height / displaySize.height
+    // Scale click to image coordinates (accounting for zoom)
+    const scaleX = image.width / (displaySize.width * zoom)
+    const scaleY = image.height / (displaySize.height * zoom)
     const imageX = clickX * scaleX
     const imageY = clickY * scaleY
     
@@ -173,7 +173,7 @@ export function HexCanvas({
     if (cell) {
       onTileClick(cell.q, cell.r)
     }
-  }, [selectMode, onTileClick, image.width, image.height, displaySize.width, displaySize.height, hexCells])
+  }, [selectMode, onTileClick, image.width, image.height, displaySize.width, displaySize.height, hexCells, zoom])
 
   // Handle mouse events for dragging
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -230,8 +230,9 @@ export function HexCanvas({
       const clickX = touch.clientX - rect.left
       const clickY = touch.clientY - rect.top
       
-      const scaleX = image.width / displaySize.width
-      const scaleY = image.height / displaySize.height
+      // Scale click to image coordinates (accounting for zoom)
+      const scaleX = image.width / (displaySize.width * zoom)
+      const scaleY = image.height / (displaySize.height * zoom)
       const imageX = clickX * scaleX
       const imageY = clickY * scaleY
       
@@ -241,7 +242,7 @@ export function HexCanvas({
       }
     }
     setIsDragging(false)
-  }, [selectMode, onTileClick, image.width, image.height, displaySize.width, displaySize.height, hexCells])
+  }, [selectMode, onTileClick, image.width, image.height, displaySize.width, displaySize.height, hexCells, zoom])
 
   // Zoom via scroll wheel - use native event listener for non-passive option
   useEffect(() => {
